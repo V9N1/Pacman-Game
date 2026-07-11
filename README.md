@@ -1,5 +1,4 @@
-# Pacman-Game
-A JavaScript Pac-Man game with multiple AI modes, difficulty levels, and configurable ghost count.
+
 # Pac-Man Game
 
 A single-file Pac-Man game built with HTML, CSS, and JavaScript. It features multiple AI modes, difficulty levels, adjustable ghost count, power pellets, sound effects, and optional speech feedback.
