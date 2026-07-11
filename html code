@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pac-Man Game</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #222, #080808 70%);
+      color: white;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+    .game-box {
+      position: relative;
+      text-align: center;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(0,0,0,0.78);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.72);
+      color: #fff7b2;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 18px;
+      letter-spacing: 1px;
+      text-align: center;
+      padding: 20px;
+      z-index: 5;
+      pointer-events: none;
+    }
+    canvas {
+      border: 4px solid #fff;
+      border-radius: 8px;
+      background: #000;
+      display: block;
+      margin: 0 auto;
+    }
+    .hud {
+      margin: 10px 0 12px;
+      font-size: 22px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 8px 0 12px;
+      font-size: 14px;
+    }
+    .controls label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.08);
+      padding: 6px 8px;
+      border-radius: 8px;
+    }
+    .controls select, .controls button {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+    .controls button {
+      cursor: pointer;
+      background: #fbbf24;
+      color: #111;
+      font-weight: bold;
+    }
+    .hint {
+      margin-top: 8px;
+      color: #ddd;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-box">
+    <h1>Pac-Man</h1>
+    <div class="hud">Score: <span id="score">0</span></div>
+    <div class="controls">
+      <label>
+        Difficulty
+        <select id="difficultySelect">
+          <option value="easy" selected>Easy</option>
+          <option value="intermediate">Medium</option>
+          <option value="hard">High</option>
+        </select>
+      </label>
+      <label>
+        AI Mode
+        <select id="aiModeSelect">
+          <option value="random">Random</option>
+          <option value="dotSeeking">Dot-seeking</option>
+          <option value="ghostAvoiding">Ghost-avoiding</option>
+          <option value="astar">A* Pathfinding</option>
+          <option value="ruleBased" selected>Rule-based</option>
+          <option value="reinforcementLearning">Reinforcement learning</option>
+        </select>
+      </label>
+      <label>
+        Ghosts
+        <select id="ghostCountSelect">
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
+      <button id="restartBtn" type="button">Restart</button>
+    </div>
+    <div id="overlay" class="overlay">Welcome! Game Starts!</div>
+    <canvas id="game" width="520" height="440"></canvas>
+    <div id="status" class="hint">Use arrow keys or WASD to move. Eat all dots to win.</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const statusEl = document.getElementById('status');
+    const overlayEl = document.getElementById('overlay');
+    const difficultySelect = document.getElementById('difficultySelect');
+    const aiModeSelect = document.getElementById('aiModeSelect');
+    const ghostCountSelect = document.getElementById('ghostCountSelect');
+    const restartBtn = document.getElementById('restartBtn');
+
+    const difficultySettings = {
+      easy: { playerSpeed: 0.16, ghostSpeed: 0.24, scoreMultiplier: 0.9, powerDuration: 8 },
+      intermediate: { playerSpeed: 0.12, ghostSpeed: 0.2, scoreMultiplier: 1.1, powerDuration: 6 },
+      hard: { playerSpeed: 0.08, ghostSpeed: 0.17, scoreMultiplier: 1.35, powerDuration: 5 }
+    };
+
+    let difficulty = 'easy';
+    let aiMode = 'ruleBased';
+    let ghostCount = 1;
+    let playerTimerTarget = difficultySettings[difficulty].playerSpeed;
+    let ghostTimerTarget = difficultySettings[difficulty].ghostSpeed;
+    let scoreMultiplier = difficultySettings[difficulty].scoreMultiplier;
+    let powerDuration = difficultySettings[difficulty].powerDuration;
+
+    const baseMaze = [
+      '###################',
+      '#........#........#',
+      '#o##.###.#.###.##o#',
+      '#...............#..#',
+      '###.#.#####.#.###..#',
+      '#...#.#.....#.#...##',
+      '#.###.#.###.#.###..#',
+      '#.....#.....#.....##',
+      '#####.#.###.#.###.##',
+      '#.....#.....#.....##',
+      '#.###.#.###.#.###..#',
+      '#...#.#.....#.#...##',
+      '###.#.#####.#.###..#',
+      '#...............#..#',
+      '#o##.###.#.###.##o#',
+      '#........#........#',
+      '###################'
+    ];
+
+    const mediumMaze = [
+      '###################',
+      '#....#...#...#....#',
+      '#o##..##.#.###.##o#',
+      '#....#............#',
+      '###.#.#####.#.###..#',
+      '#...#.#..#..#.#...##',
+      '#.###.#.###.#.###..#',
+      '#.....#.....#.....##',
+      '#####.#.###.#.###.##',
+      '#.....#..#..#.....##',
+      '#.###.#.###.#.###..#',
+      '#...#.#.....#.#...##',
+      '###.#.#####.#.###..#',
+      '#...#........#....#',
+      '#o##.###.#.###.##o#',
+      '#....#...#...#....#',
+      '###################'
+    ];
+
+    const hardMaze = [
+      '###################',
+      '#.................#',
+      '#o##.###.#.###.##o#',
+      '#..#.....#.....#..#',
+      '##.#.###.#.###.#.##',
+      '#..#.#...#...#.#..#',
+      '#.##.#.#####.#.##.#',
+      '#....#...#...#....#',
+      '###.###.#.#.###.###',
+      '#.....#.#.#.#.....#',
+      '###.###.#.#.###.###',
+      '#....#............#',
+      '#.##.#.#####.#.##.#',
+      '#..#.#...#...#.#..#',
+      '##.#.###.#.###.#.##',
+      '#o.#.###...###.#.o#',
+      '###################'
+    ];
+
+    function getMaze() {
+      if (difficulty === 'intermediate') return mediumMaze;
+      if (difficulty === 'hard') return hardMaze;
+      return baseMaze;
+    }
+
+    function createBoard() {
+      const maze = getMaze();
+      const width = Math.max(...maze.map(row => row.length));
+      return maze.map(row => row.padEnd(width, '#'));
+    }
+
+    let board = createBoard();
+    const tileSize = 24;
+    canvas.width = board[0].length * tileSize;
+    canvas.height = board.length * tileSize;
+
+    const directions = [
+      { x: 1, y: 0 },
+      { x: -1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: -1 }
+    ];
+
+    let score = 0;
+    let pelletsLeft = 0;
+    let powerTimer = 0;
+    let gameOver = false;
+    let won = false;
+    let lastTime = 0;
+    let playerTimer = 0;
+    let ghostTimer = 0;
+    let scatterTimer = 0;
+    let scatterMode = false;
+    let audioCtx = null;
+    let finalMessageShown = false;
+    let gameStarted = false;
+    let startPending = true;
+
+    const player = {
+      x: 1,
+      y: 1,
+      dir: { x: 1, y: 0 },
+      nextDir: { x: 1, y: 0 }
+    };
+
+    let ghosts = [];
+
+    function showOverlay(message) {
+      overlayEl.textContent = message;
+      overlayEl.style.display = 'flex';
+    }
+
+    function hideOverlay() {
+      overlayEl.style.display = 'none';
+    }
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 1.05;
+      utterance.pitch = 1.2;
+      const voices = window.speechSynthesis.getVoices();
+      const femaleVoice = voices.find(voice => /female|samantha|victoria|zira|jennifer|susan|alice|lisa/i.test(voice.name)) || voices.find(voice => voice.lang && voice.lang.startsWith('en'));
+      if (femaleVoice) utterance.voice = femaleVoice;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function showWelcomeMessage() {
+      startPending = true;
+      gameStarted = false;
+      showOverlay('Welcome! Game Starts!');
+      speak('Welcome! Game starts!');
+      setTimeout(() => {
+        hideOverlay();
+        gameStarted = true;
+        startPending = false;
+      }, 1800);
+    }
+
+    function finishGame() {
+      if (finalMessageShown) return;
+      finalMessageShown = true;
+      const message = gameOver ? `Game Over! Your score is ${score}` : `You Win! Your score is ${score}`;
+      showOverlay(message);
+      speak(message);
+    }
+
+    function applySettings() {
+      const settings = difficultySettings[difficulty];
+      playerTimerTarget = settings.playerSpeed;
+      ghostTimerTarget = settings.ghostSpeed;
+      scoreMultiplier = settings.scoreMultiplier;
+      powerDuration = settings.powerDuration;
+    }
+
+    function createGhosts() {
+      const templates = [
+        { name: 'blinky', x: 8, y: 7, color: '#ff3b30', dir: { x: 1, y: 0 } },
+        { name: 'pinky', x: 9, y: 7, color: '#00cfff', dir: { x: -1, y: 0 } },
+        { name: 'inky', x: 8, y: 8, color: '#ffb703', dir: { x: 0, y: 1 } },
+        { name: 'clyde', x: 9, y: 8, color: '#ff69b4', dir: { x: 0, y: -1 } },
+        { name: 'sue', x: 8, y: 9, color: '#7dd3fc', dir: { x: -1, y: 0 } }
+      ];
+      return templates.slice(0, ghostCount).map(ghost => ({ ...ghost }));
+    }
+
+    function resumeAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function beep(freq, duration, type = 'sine', volume = 0.03) {
+      resumeAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.value = volume;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function isWall(x, y) {
+      return board[y]?.[x] === '#';
+    }
+
+    function countPellets() {
+      let count = 0;
+      for (let y = 0; y < board.length; y++) {
+        for (let x = 0; x < board[y].length; x++) {
+          const cell = board[y][x];
+          if (cell === '.' || cell === 'o') count++;
+        }
+      }
+      return count;
+    }
+
+    function getScoreValue(cell) {
+      if (cell === '.') return Math.round((10 + Math.random() * 6) * scoreMultiplier);
+      if (cell === 'o') return Math.round((45 + Math.random() * 25) * scoreMultiplier);
+      return 0;
+    }
+
+    function getGhostCaptureScore() {
+      return Math.round((120 + Math.random() * 80) * scoreMultiplier);
+    }
+
+    function resetGame() {
+      applySettings();
+      board = createBoard();
+      score = 0;
+      pelletsLeft = countPellets();
+      powerTimer = 0;
+      gameOver = false;
+      won = false;
+      finalMessageShown = false;
+      scatterMode = false;
+      scatterTimer = 0;
+      playerTimer = 0;
+      ghostTimer = 0;
+      player.x = 1;
+      player.y = 1;
+      player.dir = { x: 1, y: 0 };
+      player.nextDir = { x: 1, y: 0 };
+      ghosts = createGhosts();
+      updateHud();
+    }
+
+    function updateHud() {
+      scoreEl.textContent = score;
+      if (gameOver) statusEl.textContent = 'Game Over! Press R to restart';
+      else if (won) statusEl.textContent = 'You win! Press R to restart';
+      else if (powerTimer > 0) statusEl.textContent = 'Power mode!';
+      else statusEl.textContent = `Difficulty: ${difficulty === 'easy' ? 'Easy' : difficulty === 'intermediate' ? 'Medium' : 'High'} • Ghosts: ${ghostCount} • Auto-Pac-Man`;
+    }
+
+    function eatCell(x, y) {
+      const cell = board[y][x];
+      if (cell === '.') {
+        board[y] = board[y].slice(0, x) + ' ' + board[y].slice(x + 1);
+        score += getScoreValue('.');
+        pelletsLeft--;
+        beep(900, 0.04, 'triangle', 0.025);
+      } else if (cell === 'o') {
+        board[y] = board[y].slice(0, x) + ' ' + board[y].slice(x + 1);
+        score += getScoreValue('o');
+        pelletsLeft--;
+        powerTimer = powerDuration;
+        beep(600, 0.1, 'square', 0.035);
+      }
+    }
+
+    function isValid(x, y) {
+      return y >= 0 && y < board.length && x >= 0 && x < board[0].length && !isWall(x, y);
+    }
+
+    function getAvailableMoves(x, y, dir) {
+      return directions.filter(move => {
+        const tx = x + move.x;
+        const ty = y + move.y;
+        if (!isValid(tx, ty)) return false;
+        if (dir && move.x === -dir.x && move.y === -dir.y) return false;
+        return true;
+      });
+    }
+
+    function findPath(start, target) {
+      if (!target) return [];
+      const queue = [{ x: start.x, y: start.y, path: [] }];
+      const visited = new Set([`${start.x},${start.y}`]);
+
+      while (queue.length) {
+        const current = queue.shift();
+        if (current.x === target.x && current.y === target.y) return current.path;
+
+        for (const move of directions) {
+          const nx = current.x + move.x;
+          const ny = current.y + move.y;
+          const key = `${nx},${ny}`;
+          if (!isValid(nx, ny) || visited.has(key)) continue;
+          visited.add(key);
+          queue.push({ x: nx, y: ny, path: [...current.path, move] });
+        }
+      }
+      return [];
+    }
+
+    function findNearestPellet(x, y) {
+      let target = null;
+      let bestDistance = Infinity;
+      for (let row = 0; row < board.length; row++) {
+        for (let col = 0; col < board[row].length; col++) {
+          const cell = board[row][col];
+          if (cell !== '.' && cell !== 'o') continue;
+          const distance = Math.abs(x - col) + Math.abs(y - row);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            target = { x: col, y: row };
+          }
+        }
+      }
+      return target;
+    }
+
+    function updatePlayer() {
+      const target = findNearestPellet(player.x, player.y);
+      const path = findPath({ x: player.x, y: player.y }, target);
+
+      if (path.length) {
+        player.nextDir = path[0];
+      }
+
+      const nextDir = player.nextDir;
+      if (!isWall(player.x + nextDir.x, player.y + nextDir.y)) {
+        player.dir = nextDir;
+      } else {
+        const moves = getAvailableMoves(player.x, player.y, null);
+        if (moves.length) {
+          player.dir = moves[0];
+          player.nextDir = moves[0];
+        } else {
+          player.dir = { x: -player.dir.x, y: -player.dir.y };
+        }
+      }
+
+      const nextX = player.x + player.dir.x;
+      const nextY = player.y + player.dir.y;
+
+      if (isValid(nextX, nextY)) {
+        player.x = nextX;
+        player.y = nextY;
+        eatCell(player.x, player.y);
+      }
+
+      if (pelletsLeft === 0) won = true;
+    }
+
+    function chooseGhostDirection(ghost, availableDirs) {
+      if (availableDirs.length === 0) return null;
+      if (aiMode === 'random') return availableDirs[Math.floor(Math.random() * availableDirs.length)];
+      return availableDirs[0];
+    }
+
+    function updateGhosts() {
+      ghosts.forEach(ghost => {
+        let availableDirs = getAvailableMoves(ghost.x, ghost.y, ghost.dir);
+        if (availableDirs.length === 0) availableDirs = getAvailableMoves(ghost.x, ghost.y, null);
+        const bestDir = chooseGhostDirection(ghost, availableDirs);
+        if (bestDir) {
+          ghost.dir = bestDir;
+          ghost.x += bestDir.x;
+          ghost.y += bestDir.y;
+        }
+      });
+    }
+
+    function respawnGhost(ghost) {
+      const spawns = [
+        { x: 8, y: 7, dir: { x: 1, y: 0 } },
+        { x: 9, y: 7, dir: { x: -1, y: 0 } },
+        { x: 8, y: 8, dir: { x: 0, y: 1 } },
+        { x: 9, y: 8, dir: { x: 0, y: -1 } },
+        { x: 8, y: 9, dir: { x: -1, y: 0 } }
+      ];
+      const spawn = spawns.find(s => s.x !== player.x || s.y !== player.y) || spawns[0];
+      ghost.x = spawn.x;
+      ghost.y = spawn.y;
+      ghost.dir = spawn.dir;
+    }
+
+    function checkCollisions() {
+      const hitGhosts = ghosts.filter(ghost => ghost.x === player.x && ghost.y === player.y);
+      if (hitGhosts.length === 0) return;
+      if (powerTimer > 0) {
+        score += getGhostCaptureScore();
+        hitGhosts.forEach(respawnGhost);
+        beep(520, 0.12, 'square', 0.04);
+      } else {
+        gameOver = true;
+        beep(220, 0.3, 'sawtooth', 0.04);
+      }
+    }
+
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < board.length; y++) {
+        for (let x = 0; x < board[y].length; x++) {
+          const cell = board[y][x];
+          const px = x * tileSize;
+          const py = y * tileSize;
+          if (cell === '#') {
+            ctx.fillStyle = '#1d4ed8';
+            ctx.fillRect(px, py, tileSize, tileSize);
+            ctx.strokeStyle = '#93c5fd';
+            ctx.strokeRect(px + 1, py + 1, tileSize - 2, tileSize - 2);
+          } else {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(px, py, tileSize, tileSize);
+          }
+          if (cell === '.') {
+            ctx.fillStyle = '#fef3c7';
+            ctx.beginPath();
+            ctx.arc(px + tileSize / 2, py + tileSize / 2, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (cell === 'o') {
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(px + tileSize / 2, py + tileSize / 2, 7, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    function drawPlayer() {
+      const px = player.x * tileSize + tileSize / 2;
+      const py = player.y * tileSize + tileSize / 2;
+      const radius = tileSize * 0.38;
+      const mouth = Math.PI / 6;
+      const startAngle = player.dir.x === 1 ? mouth : player.dir.x === -1 ? Math.PI - mouth : player.dir.y === 1 ? Math.PI / 2 + mouth : Math.PI * 1.5 + mouth;
+      const endAngle = player.dir.x === 1 ? 2 * Math.PI - mouth : player.dir.x === -1 ? Math.PI + mouth : player.dir.y === 1 ? Math.PI * 2.5 - mouth : Math.PI * 1.5 - mouth;
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(px, py, radius, startAngle, endAngle);
+      ctx.lineTo(px, py);
+      ctx.fill();
+    }
+
+    function drawGhost(ghost) {
+      const px = ghost.x * tileSize + tileSize / 2;
+      const py = ghost.y * tileSize + tileSize / 2;
+      const radius = tileSize * 0.38;
+      ctx.fillStyle = powerTimer > 0 ? '#7c3aed' : ghost.color;
+      ctx.beginPath();
+      ctx.arc(px, py - 3, radius, Math.PI, 0);
+      ctx.lineTo(px + radius, py + radius - 2);
+      ctx.lineTo(px + radius * 0.7, py + radius * 0.6);
+      ctx.lineTo(px + radius * 0.3, py + radius - 2);
+      ctx.lineTo(px - radius * 0.3, py + radius * 0.6);
+      ctx.lineTo(px - radius * 0.7, py + radius - 2);
+      ctx.lineTo(px - radius, py + radius - 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(px - 6, py - 1, 3, 0, Math.PI * 2);
+      ctx.arc(px + 6, py - 1, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath();
+      ctx.arc(px - 6, py - 1, 1.5, 0, Math.PI * 2);
+      ctx.arc(px + 6, py - 1, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function draw() {
+      drawBoard();
+      drawPlayer();
+      ghosts.forEach(drawGhost);
+    }
+
+    function update(delta) {
+      if (!gameStarted || startPending) return;
+      if (gameOver || won) {
+        if (!finalMessageShown) finishGame();
+        updateHud();
+        return;
+      }
+      powerTimer = Math.max(0, powerTimer - delta);
+      scatterTimer += delta;
+      playerTimer += delta;
+      ghostTimer += delta;
+      if (scatterTimer >= 5) {
+        scatterTimer = 0;
+        scatterMode = !scatterMode;
+      }
+      if (playerTimer >= playerTimerTarget) {
+        playerTimer = 0;
+        updatePlayer();
+      }
+      if (ghostTimer >= ghostTimerTarget) {
+        ghostTimer = 0;
+        updateGhosts();
+      }
+      checkCollisions();
+      if (pelletsLeft === 0) won = true;
+      updateHud();
+    }
+
+    function loop(timestamp) {
+      if (lastTime === 0) lastTime = timestamp;
+      const delta = (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+      update(delta);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    difficultySelect.addEventListener('change', () => {
+      difficulty = difficultySelect.value;
+      applySettings();
+      resetGame();
+      showWelcomeMessage();
+    });
+
+    aiModeSelect.addEventListener('change', () => {
+      aiMode = aiModeSelect.value;
+      updateHud();
+    });
+
+    ghostCountSelect.addEventListener('change', () => {
+      ghostCount = Number(ghostCountSelect.value);
+      ghosts = createGhosts();
+      updateHud();
+    });
+
+    restartBtn.addEventListener('click', () => {
+      resetGame();
+      showWelcomeMessage();
+      resumeAudio();
+    });
+
+    document.addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+      if (key === 'r') {
+        resetGame();
+        showWelcomeMessage();
+      }
+      resumeAudio();
+    });
+
+    resetGame();
+    updateHud();
+    draw();
+    requestAnimationFrame(loop);
+    showWelcomeMessage();
+  </script>
+</body>
+</html>
