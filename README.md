@@ -118,9 +118,4 @@ Watch Pac‑Man slowly become a genius
 📜 License
 This project is provided as‑is for learning and personal use.
 Modify it, remix it, break it, rebuild it — it’s yours.
-A dedicated UI for reinforcement learning experiments
 
-Visualization of learning progress (e.g., score trends over time)
-
-****License****
-This project is provided as‑is for educational and personal use. You may modify and distribute it under your preferred terms.
