@@ -1,75 +1,60 @@
-🟡 Pac‑Man Game
-A single‑file Pac‑Man experience built with pure HTML, CSS, and JavaScript — no frameworks, no installs, just classic arcade chaos running right in your browser.
+**Pac‑Man Game**
+A browser‑based Pac‑Man implementation developed using HTML, CSS, and JavaScript. The project is contained within a single file, making it easy to run, share, and extend. It includes multiple AI modes, adjustable difficulty settings, configurable ghost behavior, and optional audio and speech feedback.
 
-This version isn’t just a clone. It’s a playground.
-You get AI‑powered ghosts, multiple difficulty modes, dynamic mazes, speech feedback, and even experimental reinforcement learning hooks.
+**Features**
+Difficulty Levels
+The game provides three difficulty options—Easy, Medium, and High—each modifying core gameplay parameters such as:
 
-If Pac‑Man had a “Director’s Cut,” this would be it.
+Player and ghost movement speed
 
-⭐ Features That Make This Pac‑Man Different
-🎮 Difficulty Levels
-Choose your vibe:
-
-Easy — chill maze cruising
-
-Medium — classic arcade feel
-
-High — ghosts have gym memberships
-
-Each difficulty adjusts:
-
-Player speed
-
-Ghost speed
+Scoring multipliers
 
 Power pellet duration
 
-Score multipliers
+Maze layout complexity
 
-Maze layout
+**Pac‑Man AI Modes**
+Several AI modes are available for automated gameplay or experimentation:
 
-🤖 Pac‑Man AI Modes
-Let Pac‑Man play himself — or watch him panic.
+Random
 
-Random — chaos mode
+Dot‑seeking
 
-Dot‑seeking — productivity mode
+Ghost‑avoiding
 
-Ghost‑avoiding — survival mode
+A\* pathfinding
 
-A\* — pathfinding like a tiny yellow GPS
+Rule‑based (default)
 
-Rule‑based — classic behavior
+Reinforcement learning (placeholder)
 
-Reinforcement learning (placeholder) — future robot overlord
+Ghost Configuration
+Users may select between 1 and 5 ghosts, each represented by classic character names:
+Blinky, Pinky, Inky, Clyde, and Sue.
 
-👻 Adjustable Ghost Count
-Pick between 1–5 ghosts, each with their classic personalities:
-Blinky, Pinky, Inky, Clyde, Sue
+****Core Gameplay Elements****
+Classic maze layouts tailored to difficulty
 
-🍒 Classic Mechanics
-Power pellets that flip the hunter/hunted dynamic
+Power pellets enabling temporary ghost capture
 
-Score tracking
+On‑screen score and status indicators
 
-On‑screen status messages
+Start, win, and loss overlays
 
-Start / Win / Loss overlays
+Basic sound effects via AudioContext
 
-Sound effects via AudioContext
+Optional speech output using speechSynthesis
 
-Optional speech via speechSynthesis
+Keyboard controls: Arrow keys, WASD, and R to restart
 
-Keyboard controls: Arrow keys, WASD, R to restart
+****How to Run****
+Save the game file as pacman.html.
 
-🚀 How to Run
-Save the game file as pacman.html
+Place it in a folder (e.g., pacman-game/).
 
-Put it in a folder (e.g., pacman-game/)
+Open pacman.html in any modern browser (Chrome, Firefox, Edge, etc.).
 
-Open it in any modern browser: Chrome, Firefox, Edge, etc.
-
-Use the controls at the top to change:
+Use the interface controls to adjust:
 
 Difficulty
 
@@ -77,44 +62,35 @@ AI mode
 
 Ghost count
 
-Play.
+Begin playing using keyboard controls.
 
-Lose.
-
-Pretend you didn’t lose and play again.
-
-📁 Project Structure
+****Project Structure****
 Code
 pacman-game/
-  pacman.html      # Main game file (HTML + CSS + JS)
-  README.md        # This file
+  pacman.html      # Main game file (HTML, CSS, and JavaScript)
+  README.md        # Project documentation
   .gitignore       # Git ignore rules
-Everything lives in one file, making it extremely easy to share, tweak, or break in creative ways.
+All game logic is contained within pacman.html, ensuring a minimal and portable project structure.
 
-🔮 Future Enhancements
-This project is built to grow. Possible upgrades include:
+****Future Enhancements****
+Potential improvements include:
 
-🧠 Smarter AI
-Full dot‑seeking with A* or Dijkstra
+AI Development
+Full implementation of dot‑seeking using A* or Dijkstra
 
-Ghost‑avoidance with threat weighting
+Enhanced ghost‑avoidance logic
 
-A real reinforcement learning agent (Q‑learning or a tiny neural net)
+A functional reinforcement learning agent (e.g., Q‑learning or a lightweight neural network)
 
-📊 Gameplay Analytics
-Log moves, scores, and outcomes to CSV
+Gameplay Data Collection
+Logging moves, scores, and outcomes to CSV
 
-Compare AI modes
+Comparative analysis of AI modes and difficulty settings
 
-See which difficulty produces the most rage‑quits
+****Training Interface****
+A dedicated UI for reinforcement learning experiments
 
-🧪 Training UI
-Let an RL agent play thousands of games
+Visualization of learning progress (e.g., score trends over time)
 
-Visualize learning curves
-
-Watch Pac‑Man slowly become a genius
-
-📜 License
-This project is provided as‑is for learning and personal use.
-Modify it, remix it, break it, rebuild it — it’s yours.
+****License****
+This project is provided as‑is for educational and personal use. You may modify and distribute it under your preferred terms.
